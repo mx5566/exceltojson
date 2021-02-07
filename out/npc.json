@@ -1,0 +1,47 @@
+[
+    {
+        "AttackDistance": 3,
+        "AttackInter": 1000,
+        "Hp": 100000,
+        "ID": 1,
+        "Level": 100,
+        "Name": "野猪",
+        "Type": 1
+    },
+    {
+        "AttackDistance": 5,
+        "AttackInter": 1000,
+        "Hp": 10000,
+        "ID": 2,
+        "Level": 199,
+        "Name": "佩奇",
+        "Type": 2
+    },
+    {
+        "AttackDistance": 10,
+        "AttackInter": 5000,
+        "Hp": 99999,
+        "ID": 3,
+        "Level": 200,
+        "Name": "狮子王",
+        "Type": 3
+    },
+    {
+        "AttackDistance": 1,
+        "AttackInter": 3000,
+        "Hp": 989898,
+        "ID": 4,
+        "Level": 999,
+        "Name": "恐龙王",
+        "Type": 4
+    },
+    {
+        "AttackDistance": 2.1,
+        "AttackInter": 2000,
+        "Hp": 100000,
+        "ID": 5,
+        "Level": 10000,
+        "Name": "鸡场",
+        "Type": 5
+    }
+]
