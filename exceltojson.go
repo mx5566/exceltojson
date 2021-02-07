@@ -3,7 +3,8 @@ package exceltojson
 import (
 	"encoding/json"
 	"fmt"
-
+	"regexp"
+	"strconv"
 
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	"io"
@@ -61,7 +62,6 @@ func ExcelToJson(pwdPath, outPath string) {
 	start(pwdPath, outPath)
 }
 
-
 func start(filepath string, outPath string) {
 	var filter FileFilter
 	_ = filter.GetFileList(filepath, ".xlsx")
@@ -81,7 +81,6 @@ func start(filepath string, outPath string) {
 	}
 }
 
-
 func checkFileIsExist(filename string) bool {
 	var exist = true
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -90,7 +89,17 @@ func checkFileIsExist(filename string) bool {
 	return exist
 }
 
+func compressStr(str string) string {
+	if str == "" {
+		return ""
+	}
+	//匹配一个或多个空白符的正则表达式
+	reg := regexp.MustCompile("\\s+")
+	return reg.ReplaceAllString(str, "")
+}
+
 var errCount = 0
+
 //读取excel
 func readExcel(basePath string, file string, outPath string) {
 	outFile := strings.Replace(file, basePath, outPath, 1)
@@ -121,17 +130,37 @@ func readExcel(basePath string, file string, outPath string) {
 	firstSheet := f.GetSheetList()[0]
 	rows, _ := f.GetRows(firstSheet)
 	dataDict := make([]interface{}, 0, 2000)
+
+	var sliceFieldTypes = []string{}
 	keys := make([]string, 0, 50)
 	for i, row := range rows {
 		if i == 1 {
 			for _, colCell := range row {
 				keys = append(keys, colCell)
 			}
-		}
-		if i == 2 || len(row) == 0 || i == 0 {
 			continue
 		}
-		cells := make(map[string]string)
+		if len(row) == 0 || i == 0 {
+			continue
+		}
+
+		// 第三行是数据类型
+		if i == 2 {
+			for _, colCell := range row {
+				if colCell == "" {
+					log.Panic("fileName " + file + " has field empty 2!!!")
+				}
+
+				colCell = compressStr(colCell)
+				//fmt.Print(colCell)
+				sliceFieldTypes = append(sliceFieldTypes, colCell)
+			}
+			continue
+		}
+
+		fmt.Print(sliceFieldTypes)
+
+		cells := make(map[string]interface{})
 		for k, colCell := range row {
 			if k >= len(keys) {
 				break
@@ -141,8 +170,40 @@ func readExcel(basePath string, file string, outPath string) {
 				continue
 			}
 
-			cells[keys[k]] = colCell
+			fieldName := keys[k]
+
+			switch sliceFieldTypes[k] {
+			case "int64", "int32", "int":
+				ret, _ := strconv.Atoi(colCell)
+				cells[fieldName] = ret
+			case "float32":
+				//ret, _ := strconv.Atoi(colCell)
+				//strconv.FormatFloat(float64, 'E', -1, 32)
+				ret, _ := strconv.ParseFloat(colCell, 32)
+				cells[fieldName] = float32(ret)
+			case "float64":
+				ret, _ := strconv.ParseFloat(colCell, 64)
+				cells[fieldName] = ret
+			case "string":
+				cells[fieldName] = colCell
+			case "[]int":
+				sli := strings.Split(colCell, ",")
+				sliTemp := []int{}
+				for _, value := range sli {
+					ret, _ := strconv.Atoi(value)
+					sliTemp = append(sliTemp, ret)
+				}
+				// 设置数组
+				cells[fieldName] = sliTemp
+			case "[]string":
+				sli := strings.Split(colCell, "|")
+				// 设置数组
+				cells[fieldName] = sli
+			case "map[string]string": // key1,value1|key2,value2
+
+			}
 		}
+
 		//检测字段是否全部为空
 		isAppend := false
 		for _, v := range cells {
@@ -152,6 +213,7 @@ func readExcel(basePath string, file string, outPath string) {
 			}
 		}
 		if isAppend {
+
 			dataDict = append(dataDict, cells)
 		}
 	}
